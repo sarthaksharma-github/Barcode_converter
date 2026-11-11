@@ -17,89 +17,212 @@ st.set_page_config(
 # ── Styling ───────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap');
 
-html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+html, body, [class*="css"] {
+    font-family: 'Manrope', sans-serif;
+}
 
+/* ── App background ── */
 .stApp {
-    background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%);
-    color: #e8e8f0;
+    background-color: #0a0a0a;
+    color: #e8e8e8;
 }
+
+/* ── Hexagon glow — fixed, fades bottom ── */
+.hex-bg {
+    position: fixed;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 100%; max-width: 1000px; height: 640px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='640'%3E%3Cdefs%3E%3Cpattern id='h' x='0' y='0' width='60' height='52' patternUnits='userSpaceOnUse'%3E%3Cpolygon points='30,1 59,16 59,47 30,62 1,47 1,16' fill='none' stroke='%23ffffff' stroke-width='0.6'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='900' height='640' fill='url(%23h)'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center top;
+    -webkit-mask-image: radial-gradient(ellipse 60% 55% at 50% 0%, black 0%, transparent 100%);
+    mask-image: radial-gradient(ellipse 60% 55% at 50% 0%, black 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.11;
+}
+
+/* ── Hero ── */
 .hero {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 16px;
-    padding: 36px 40px;
-    margin-bottom: 28px;
-    box-shadow: 0 8px 32px rgba(102,126,234,0.35);
+    padding: 52px 24px 44px;
+    margin-bottom: 32px;
+    text-align: center;
 }
-.hero h1 { color: #fff; font-size: 2rem; font-weight: 700; margin: 0 0 8px; }
-.hero p  { color: rgba(255,255,255,0.82); font-size: 0.97rem; margin: 0; }
+.hero h1 {
+    font-family: 'Manrope', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0 0 14px;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+}
+.hero .highlight {
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 500;
+    color: #ffedd5;
+    text-transform: capitalize;
+}
+.hero p {
+    color: #a3a3a3;
+    font-size: 1rem;
+    margin: 0 auto;
+    font-weight: 400;
+    max-width: 540px;
+    line-height: 1.65;
+}
+
+/* ── Cards ── */
 .spec-box {
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(0, 0, 0, 0.10);
+    border: 1px solid rgba(255, 237, 213, 0.15);
     border-radius: 12px;
-    padding: 18px 22px;
+    padding: 20px 24px;
     margin-bottom: 20px;
+    backdrop-filter: blur(8px);
+    transition: border-color 0.2s;
 }
-.spec-row { display:flex; gap:32px; flex-wrap:wrap; }
-.spec-item { text-align:center; }
-.spec-val  { font-size:1.4rem; font-weight:700; color:#a78bfa; }
-.spec-key  { font-size:0.75rem; color:#64748b; margin-top:2px; }
+.spec-box:hover {
+    border-color: rgba(255, 237, 213, 0.30);
+}
 .step-card {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.10);
-    border-radius: 14px;
-    padding: 24px 28px;
+    background: rgba(0, 0, 0, 0.10);
+    border: 1px solid rgba(255, 237, 213, 0.15);
+    border-radius: 12px;
+    padding: 18px 24px;
     margin-bottom: 20px;
-    backdrop-filter: blur(12px);
+    backdrop-filter: blur(8px);
 }
+
+/* Spec row */
+.spec-row { display: flex; gap: 36px; flex-wrap: wrap; align-items: flex-start; }
+.spec-item { text-align: center; }
+.spec-val {
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: #ffffff;
+    font-family: 'Montserrat', sans-serif;
+}
+.spec-key {
+    font-size: 0.70rem;
+    color: #737373;
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.spec-label {
+    font-size: 0.72rem;
+    color: #737373;
+    font-weight: 600;
+    margin-bottom: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* Step title */
 .step-title {
-    font-size: 1.05rem; font-weight: 600; color: #a78bfa;
-    margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0;
 }
 .step-badge {
-    background: linear-gradient(135deg,#667eea,#764ba2);
-    color: #fff; border-radius: 50%; width:26px; height:26px;
-    display:inline-flex; align-items:center; justify-content:center;
-    font-size:0.75rem; font-weight:700; flex-shrink:0;
+    background: #ffffff;
+    color: #0a0a0a;
+    border-radius: 50%;
+    width: 24px; height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.70rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    font-family: 'Montserrat', sans-serif;
 }
+
+/* Pill */
 .pill {
-    background: rgba(102,126,234,0.18); color: #a5b4fc;
-    border-radius: 20px; padding: 3px 12px;
-    font-size: 0.78rem; font-weight: 500; white-space: nowrap;
+    display: inline-block;
+    background: rgba(255, 237, 213, 0.07);
+    color: #ffedd5;
+    border: 1px solid rgba(255, 237, 213, 0.22);
+    border-radius: 4px;
+    padding: 3px 10px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    white-space: nowrap;
 }
+
+/* ── Sidebar ── */
 section[data-testid="stSidebar"] {
-    background: rgba(15,15,26,0.95) !important;
-    border-right: 1px solid rgba(255,255,255,0.08) !important;
+    background: rgba(10, 10, 10, 0.98) !important;
+    border-right: 1px solid rgba(255, 237, 213, 0.10) !important;
 }
+
+/* ── Inputs ── */
 div[data-testid="stNumberInput"] input {
-    background: rgba(255,255,255,0.07) !important;
-    border: 1px solid rgba(255,255,255,0.15) !important;
-    border-radius: 8px !important; color: #e2e8f0 !important;
+    background: rgba(255, 255, 255, 0.04) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-radius: 6px !important;
+    color: #e8e8e8 !important;
+    font-family: 'Manrope', sans-serif !important;
 }
 div[data-testid="stFileUploader"] {
-    border: 2px dashed rgba(102,126,234,0.45) !important;
+    border: 1px dashed rgba(255, 237, 213, 0.28) !important;
     border-radius: 12px !important;
-    background: rgba(102,126,234,0.06) !important;
+    background: rgba(255, 237, 213, 0.025) !important;
 }
+
+/* ── Progress ── */
 .stProgress > div > div > div > div {
-    background: linear-gradient(90deg, #667eea, #764ba2) !important;
+    background: #ffffff !important;
 }
+
+/* ── Solid button — asymmetric corners, one per screen ── */
 .stButton > button {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
-    color: #fff !important; border: none !important;
-    border-radius: 10px !important; padding: 10px 28px !important;
-    font-weight: 600 !important; font-size: 0.95rem !important;
-    transition: opacity .2s !important;
-}
-.stButton > button:hover { opacity: 0.88 !important; }
-.stDownloadButton > button {
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-    color: #fff !important; border: none !important;
-    border-radius: 10px !important; padding: 10px 28px !important;
+    background: #ffffff !important;
+    color: #0a0a0a !important;
+    border: none !important;
+    border-radius: 0 !important;
+    border-top-right-radius: 8px !important;
+    border-bottom-left-radius: 8px !important;
+    padding: 10px 32px !important;
     font-weight: 600 !important;
+    font-size: 0.93rem !important;
+    font-family: 'Montserrat', sans-serif !important;
+    letter-spacing: -0.01em !important;
+    transition: opacity 0.2s !important;
+}
+.stButton > button:hover {
+    opacity: 0.84 !important;
+}
+
+/* ── Download button — outline, mirrored corners ── */
+.stDownloadButton > button {
+    background: transparent !important;
+    color: #ffffff !important;
+    border: 1px solid rgba(255, 255, 255, 0.30) !important;
+    border-radius: 0 !important;
+    border-top-left-radius: 8px !important;
+    border-bottom-right-radius: 8px !important;
+    padding: 10px 28px !important;
+    font-weight: 600 !important;
+    font-family: 'Montserrat', sans-serif !important;
+    transition: border-color 0.2s, background 0.2s !important;
+}
+.stDownloadButton > button:hover {
+    border-color: rgba(255, 255, 255, 0.65) !important;
+    background: rgba(255, 255, 255, 0.04) !important;
 }
 </style>
+
+<div class="hex-bg"></div>
 """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -281,20 +404,16 @@ for key, default in {
 # ── Hero ──────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="hero">
-  <h1>🏷️ Barcode Label Grid — Uline S-15186</h1>
-  <p>Generates print-ready PDFs precisely matched to the
-     <b>Uline S-15186 / Avery 6527</b> sticky-label sheet spec.<br>
-     Upload a PDF (one barcode per page), set copies per barcode, download.</p>
+  <h1>Barcode label grid <span class="highlight">generator</span></h1>
+  <p>Print-ready PDFs precisely matched to the Uline S-15186 / Avery 6527
+     sticky-label sheet spec. Upload a PDF, set copies per barcode, download.</p>
 </div>
 """, unsafe_allow_html=True)
 
 # ── Spec display ──────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="spec-box">
-  <div style="font-size:0.78rem;color:#64748b;font-weight:600;letter-spacing:.05em;
-              text-transform:uppercase;margin-bottom:12px;">
-    📐 S-15186 Physical Specifications (fixed — exact match)
-  </div>
+  <div class="spec-label">S-15186 physical specifications (fixed)</div>
   <div class="spec-row">
     <div class="spec-item"><div class="spec-val">4" × 2"</div>
       <div class="spec-key">Label size</div></div>
@@ -316,7 +435,7 @@ st.markdown("""
 
 # ── Sidebar — DPI & padding only (layout is fixed to spec) ───────────────────
 with st.sidebar:
-    st.markdown("### ⚙️ Output Settings")
+    st.markdown("### Output settings")
     st.info("📐 **Sheet layout is fixed** to the exact Uline S-15186 / Avery 6527 spec.\n\n"
             "Only image quality and content padding are adjustable.")
     dpi = st.slider("Render DPI", 100, 300, 200, 25,
@@ -326,7 +445,7 @@ with st.sidebar:
     CONTENT_PAD = float(content_pad_in)
 
     st.markdown("---")
-    st.markdown("#### 📐 Sheet layout (read-only)")
+    st.markdown("#### Sheet layout (read-only)")
     st.markdown(f"""
 | Dimension | Value |
 |-----------|-------|
@@ -369,7 +488,7 @@ if st.session_state.barcodes:
       <div class="step-title">
         <span class="step-badge">2</span>
         Set copy counts &nbsp;
-        <span style="color:#64748b;font-weight:400;font-size:0.88rem">
+        <span style="color:#737373;font-weight:400;font-size:0.88rem">
           ({total} barcode{"s" if total > 1 else ""} · 10 labels per sheet)
         </span>
       </div>
@@ -386,8 +505,8 @@ if st.session_state.barcodes:
         with c_lbl:
             st.markdown(
                 f"<div style='padding-top:10px'>"
-                f"<b style='color:#e2e8f0;font-size:0.95rem'>Barcode {i+1}</b>"
-                f"<br/><span style='color:#64748b;font-size:0.78rem'>Page {i+1} of source PDF</span>"
+                f"<b style='color:#e8e8e8;font-size:0.95rem;font-family:Manrope,sans-serif'>Barcode {i+1}</b>"
+                f"<br/><span style='color:#737373;font-size:0.78rem'>Page {i+1} of source PDF</span>"
                 f"</div>",
                 unsafe_allow_html=True
             )
@@ -411,9 +530,9 @@ if st.session_state.barcodes:
     total_copies = sum(st.session_state.copy_counts[i] for i in range(total))
     total_sheets  = sum(math.ceil(st.session_state.copy_counts[i] / CELLS_PP) for i in range(total))
     st.markdown(
-        f"<div style='color:#64748b;font-size:0.85rem;margin:6px 0 20px'>"
-        f"📊 Total: <b style='color:#a5b4fc'>{total_copies:,} labels</b> across "
-        f"<b style='color:#a5b4fc'>{total_sheets} sheet{'s' if total_sheets!=1 else ''}</b> "
+        f"<div style='color:#737373;font-size:0.85rem;margin:6px 0 20px'>"
+        f"Total: <b style='color:#ffedd5'>{total_copies:,} labels</b> across "
+        f"<b style='color:#ffedd5'>{total_sheets} sheet{'s' if total_sheets!=1 else ''}</b> "
         f"({total} PDF file{'s' if total>1 else ''})"
         f"</div>",
         unsafe_allow_html=True
@@ -458,10 +577,10 @@ if st.session_state.barcodes:
         with col_info:
             size_kb = len(st.session_state.zip_bytes) / 1024
             st.markdown(
-                f"<div style='padding-top:12px;color:#64748b;font-size:0.85rem'>"
-                f"📦 <b style='color:#e2e8f0'>{len(st.session_state.generated_pdfs)} PDFs</b>"
+                f"<div style='padding-top:12px;color:#737373;font-size:0.85rem'>"
+                f"<b style='color:#e8e8e8'>{len(st.session_state.generated_pdfs)} PDFs</b>"
                 f" · {size_kb:.0f} KB · {total_sheets} total sheet(s) · "
-                f"Print on <b style='color:#a5b4fc'>Uline S-15186</b> label stock"
+                f"Print on <b style='color:#ffedd5'>Uline S-15186</b> label stock"
                 f"</div>",
                 unsafe_allow_html=True
             )
@@ -494,8 +613,9 @@ if st.session_state.barcodes:
 
 else:
     st.markdown(
-        "<div style='text-align:center;color:#475569;padding:48px 0;font-size:0.95rem;'>"
-        "⬆️  Upload a PDF above to get started."
+        "<div style='text-align:center;color:#525252;padding:60px 0;font-size:0.95rem;"
+        "font-family:Manrope,sans-serif'>"
+        "Upload a PDF above to get started."
         "</div>",
         unsafe_allow_html=True
     )
