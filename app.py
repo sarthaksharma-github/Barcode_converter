@@ -8,19 +8,20 @@ import io, math, zipfile, base64
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Barcode Label Grid — Uline S-15186",
+    page_title="Barcode Label Grid",
     page_icon="🏷️",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
-# ── Styling ───────────────────────────────────────────────────────────────────
+# ── Styling + full-page drop zone ─────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap');
 
-html, body, [class*="css"] {
+*, html, body, [class*="css"] {
     font-family: 'Manrope', sans-serif;
+    box-sizing: border-box;
 }
 
 /* ── App background ── */
@@ -29,12 +30,12 @@ html, body, [class*="css"] {
     color: #e8e8e8;
 }
 
-/* ── Hexagon glow — fixed, fades bottom ── */
+/* ── Hexagon glow, fades downward ── */
 .hex-bg {
     position: fixed;
     top: 0; left: 50%;
     transform: translateX(-50%);
-    width: 100%; max-width: 1000px; height: 640px;
+    width: 100%; max-width: 1100px; height: 640px;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='640'%3E%3Cdefs%3E%3Cpattern id='h' x='0' y='0' width='60' height='52' patternUnits='userSpaceOnUse'%3E%3Cpolygon points='30,1 59,16 59,47 30,62 1,47 1,16' fill='none' stroke='%23ffffff' stroke-width='0.6'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='900' height='640' fill='url(%23h)'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: center top;
@@ -45,20 +46,46 @@ html, body, [class*="css"] {
     opacity: 0.11;
 }
 
+/* ── Full-page drop overlay ── */
+.drop-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 10, 10, 0.82);
+    border: 2px dashed rgba(255, 237, 213, 0.45);
+    z-index: 9999;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    pointer-events: none;
+    backdrop-filter: blur(6px);
+}
+.drop-overlay.active { display: flex; }
+.drop-overlay-icon { font-size: 2.8rem; }
+.drop-overlay-text {
+    font-family: 'Manrope', sans-serif;
+    color: #ffedd5;
+    font-size: 1.05rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+}
+
 /* ── Hero ── */
 .hero {
-    padding: 52px 24px 44px;
-    margin-bottom: 32px;
+    padding: 64px 24px 52px;
     text-align: center;
+    max-width: 580px;
+    margin: 0 auto 36px;
 }
 .hero h1 {
     font-family: 'Manrope', sans-serif;
-    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    font-size: clamp(2rem, 5vw, 3.2rem);
     font-weight: 600;
     color: #ffffff;
     margin: 0 0 14px;
-    letter-spacing: -0.02em;
-    line-height: 1.15;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
 }
 .hero .highlight {
     font-family: 'Montserrat', sans-serif;
@@ -67,116 +94,78 @@ html, body, [class*="css"] {
     text-transform: capitalize;
 }
 .hero p {
-    color: #a3a3a3;
-    font-size: 1rem;
+    color: #737373;
+    font-size: 0.93rem;
     margin: 0 auto;
-    font-weight: 400;
-    max-width: 540px;
     line-height: 1.65;
 }
 
-/* ── Cards ── */
-.spec-box {
-    background: rgba(0, 0, 0, 0.10);
-    border: 1px solid rgba(255, 237, 213, 0.15);
-    border-radius: 12px;
-    padding: 20px 24px;
-    margin-bottom: 20px;
-    backdrop-filter: blur(8px);
-    transition: border-color 0.2s;
+/* ── Upload zone ── */
+div[data-testid="stFileUploader"] {
+    border: 1px dashed rgba(255, 237, 213, 0.22) !important;
+    border-radius: 12px !important;
+    background: rgba(255, 237, 213, 0.02) !important;
+    transition: border-color 0.2s, background 0.2s !important;
 }
-.spec-box:hover {
-    border-color: rgba(255, 237, 213, 0.30);
-}
-.step-card {
-    background: rgba(0, 0, 0, 0.10);
-    border: 1px solid rgba(255, 237, 213, 0.15);
-    border-radius: 12px;
-    padding: 18px 24px;
-    margin-bottom: 20px;
-    backdrop-filter: blur(8px);
+div[data-testid="stFileUploader"]:hover {
+    border-color: rgba(255, 237, 213, 0.42) !important;
+    background: rgba(255, 237, 213, 0.04) !important;
 }
 
-/* Spec row */
-.spec-row { display: flex; gap: 36px; flex-wrap: wrap; align-items: flex-start; }
-.spec-item { text-align: center; }
-.spec-val {
-    font-size: 1.35rem;
-    font-weight: 600;
-    color: #ffffff;
-    font-family: 'Montserrat', sans-serif;
-}
-.spec-key {
+/* ── Section label (data label — uppercase allowed) ── */
+.section-label {
     font-size: 0.70rem;
-    color: #737373;
-    margin-top: 4px;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-}
-.spec-label {
-    font-size: 0.72rem;
-    color: #737373;
-    font-weight: 600;
-    margin-bottom: 14px;
+    color: #525252;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-}
-
-/* Step title */
-.step-title {
-    font-size: 1rem;
     font-weight: 600;
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 0;
-}
-.step-badge {
-    background: #ffffff;
-    color: #0a0a0a;
-    border-radius: 50%;
-    width: 24px; height: 24px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.70rem;
-    font-weight: 700;
-    flex-shrink: 0;
-    font-family: 'Montserrat', sans-serif;
+    margin: 36px 0 14px;
 }
 
-/* Pill */
-.pill {
+/* ── Thin divider ── */
+.row-divider {
+    border: none;
+    border-top: 1px solid rgba(255, 237, 213, 0.07);
+    margin: 0;
+}
+
+/* ── Sheet count chip ── */
+.sheet-chip {
     display: inline-block;
-    background: rgba(255, 237, 213, 0.07);
+    background: rgba(255, 237, 213, 0.06);
     color: #ffedd5;
-    border: 1px solid rgba(255, 237, 213, 0.22);
+    border: 1px solid rgba(255, 237, 213, 0.18);
     border-radius: 4px;
-    padding: 3px 10px;
-    font-size: 0.78rem;
+    padding: 2px 9px;
+    font-size: 0.76rem;
     font-weight: 500;
     white-space: nowrap;
 }
 
-/* ── Sidebar ── */
-section[data-testid="stSidebar"] {
-    background: rgba(10, 10, 10, 0.98) !important;
-    border-right: 1px solid rgba(255, 237, 213, 0.10) !important;
+/* ── Totals row ── */
+.totals-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 0 22px;
+    border-top: 1px solid rgba(255, 237, 213, 0.07);
+    flex-wrap: wrap;
+    gap: 12px;
 }
+.totals-text {
+    font-size: 0.86rem;
+    color: #525252;
+}
+.totals-text b { color: #e8e8e8; font-weight: 600; }
 
-/* ── Inputs ── */
+/* ── Number input ── */
 div[data-testid="stNumberInput"] input {
     background: rgba(255, 255, 255, 0.04) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border: 1px solid rgba(255, 255, 255, 0.09) !important;
     border-radius: 6px !important;
     color: #e8e8e8 !important;
     font-family: 'Manrope', sans-serif !important;
-}
-div[data-testid="stFileUploader"] {
-    border: 1px dashed rgba(255, 237, 213, 0.28) !important;
-    border-radius: 12px !important;
-    background: rgba(255, 237, 213, 0.025) !important;
+    text-align: center !important;
 }
 
 /* ── Progress ── */
@@ -184,7 +173,7 @@ div[data-testid="stFileUploader"] {
     background: #ffffff !important;
 }
 
-/* ── Solid button — asymmetric corners, one per screen ── */
+/* ── Solid button — one per screen, asymmetric corners ── */
 .stButton > button {
     background: #ffffff !important;
     color: #0a0a0a !important;
@@ -192,37 +181,86 @@ div[data-testid="stFileUploader"] {
     border-radius: 0 !important;
     border-top-right-radius: 8px !important;
     border-bottom-left-radius: 8px !important;
-    padding: 10px 32px !important;
+    padding: 9px 28px !important;
     font-weight: 600 !important;
-    font-size: 0.93rem !important;
+    font-size: 0.88rem !important;
     font-family: 'Montserrat', sans-serif !important;
     letter-spacing: -0.01em !important;
     transition: opacity 0.2s !important;
+    white-space: nowrap !important;
 }
-.stButton > button:hover {
-    opacity: 0.84 !important;
-}
+.stButton > button:hover { opacity: 0.84 !important; }
 
 /* ── Download button — outline, mirrored corners ── */
 .stDownloadButton > button {
     background: transparent !important;
     color: #ffffff !important;
-    border: 1px solid rgba(255, 255, 255, 0.30) !important;
+    border: 1px solid rgba(255, 255, 255, 0.26) !important;
     border-radius: 0 !important;
     border-top-left-radius: 8px !important;
     border-bottom-right-radius: 8px !important;
-    padding: 10px 28px !important;
+    padding: 9px 24px !important;
     font-weight: 600 !important;
     font-family: 'Montserrat', sans-serif !important;
+    font-size: 0.88rem !important;
     transition: border-color 0.2s, background 0.2s !important;
 }
 .stDownloadButton > button:hover {
-    border-color: rgba(255, 255, 255, 0.65) !important;
+    border-color: rgba(255, 255, 255, 0.58) !important;
     background: rgba(255, 255, 255, 0.04) !important;
+}
+
+/* ── Sidebar ── */
+section[data-testid="stSidebar"] {
+    background: rgba(10, 10, 10, 0.98) !important;
+    border-right: 1px solid rgba(255, 237, 213, 0.09) !important;
+}
+
+/* ── Hide Streamlit chrome ── */
+#MainMenu, footer, header { visibility: hidden; }
+.block-container {
+    padding-top: 0 !important;
+    padding-bottom: 48px !important;
+    max-width: 820px;
+    margin: 0 auto;
 }
 </style>
 
 <div class="hex-bg"></div>
+
+<div class="drop-overlay" id="dropOverlay">
+  <div class="drop-overlay-icon">🏷️</div>
+  <div class="drop-overlay-text">Drop your PDF anywhere</div>
+</div>
+
+<script>
+(function() {
+  var overlay = document.getElementById('dropOverlay');
+  var counter = 0;
+
+  document.addEventListener('dragenter', function(e) {
+    counter++;
+    if (overlay) overlay.classList.add('active');
+  });
+  document.addEventListener('dragleave', function(e) {
+    counter--;
+    if (counter <= 0) { counter = 0; if (overlay) overlay.classList.remove('active'); }
+  });
+  document.addEventListener('dragover', function(e) { e.preventDefault(); });
+  document.addEventListener('drop', function(e) {
+    e.preventDefault();
+    counter = 0;
+    if (overlay) overlay.classList.remove('active');
+    var input = document.querySelector('input[type="file"]');
+    if (input && e.dataTransfer.files.length > 0) {
+      var dt = new DataTransfer();
+      for (var i = 0; i < e.dataTransfer.files.length; i++) dt.items.add(e.dataTransfer.files[i]);
+      input.files = dt.files;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  });
+})();
+</script>
 """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -262,7 +300,7 @@ GAP_V     = 0.000 * PT   # 0 pt  — rows touch (no vertical gutter)
 
 # Border styling (cosmetic, printed as crop marks on the label)
 BORDER_PT  = 0.75          # thin border line
-CORNER_R   = 0.1 * PT      # rounded corner radius ≈ 7.2 pt
+CORNER_R   = 0.1 * PT      # rounded corner radius ~= 7.2 pt
 
 # Inner content padding
 CONTENT_PAD = 10.0         # pt — whitespace around barcode inside label
@@ -270,7 +308,6 @@ CONTENT_PAD = 10.0         # pt — whitespace around barcode inside label
 # Verify geometry (sanity check)
 assert abs((MARGIN_LEFT * 2 + COLS * LABEL_W + (COLS - 1) * GAP_H) - SHEET_W) < 1, \
     "Horizontal geometry mismatch — check left margin / label width / gap"
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -360,7 +397,7 @@ def build_pdf(barcode_img: Image.Image, num_copies: int, dpi: int) -> bytes:
             # ── Label origin (bottom-left in ReportLab coords) ────────────────
             # ReportLab y=0 is at page bottom.
             # Our MARGIN_TOP is measured from the sheet TOP.
-            # Row 0 = topmost row → highest y.
+            # Row 0 = topmost row -> highest y.
             lx = MARGIN_LEFT + col * (LABEL_W + GAP_H)
             ly = SHEET_H - MARGIN_TOP - (row + 1) * LABEL_H - row * GAP_V
 
@@ -401,174 +438,140 @@ for key, default in {
     if key not in st.session_state:
         st.session_state[key] = default
 
+# ── Sidebar ───────────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown(
+        "<div style='padding:20px 0 18px;font-size:0.70rem;text-transform:uppercase;"
+        "letter-spacing:0.08em;color:#525252;font-weight:600'>Output settings</div>",
+        unsafe_allow_html=True
+    )
+    dpi = st.slider("Render quality (DPI)", 100, 300, 200, 25,
+                    help="Higher = sharper, larger file")
+    content_pad_in = st.slider("Inner padding (pt)", 4, 30, int(CONTENT_PAD), 1,
+                                help="Space between label edge and barcode")
+    CONTENT_PAD = float(content_pad_in)
+
+    st.markdown("<hr style='border-color:rgba(255,237,213,0.09);margin:16px 0'>",
+                unsafe_allow_html=True)
+    st.markdown(
+        "<div style='font-size:0.70rem;text-transform:uppercase;letter-spacing:0.08em;"
+        "color:#525252;font-weight:600;margin-bottom:12px'>S-15186 spec</div>",
+        unsafe_allow_html=True
+    )
+    st.markdown("""
+| | |
+|---|---|
+| Label | 4" × 2" |
+| Grid | 2 × 5 (10 / sheet) |
+| Sheet | 8.5" × 11" |
+| Top margin | 0.500" |
+| H gutter | 0.125" |
+| V gutter | 0.000" |
+""")
+
 # ── Hero ──────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div class="hero">
-  <h1>Barcode label grid <span class="highlight">generator</span></h1>
-  <p>Print-ready PDFs precisely matched to the Uline S-15186 / Avery 6527
-     sticky-label sheet spec. Upload a PDF, set copies per barcode, download.</p>
+  <h1>Barcode label <span class="highlight">grid</span></h1>
+  <p>Converts a PDF of barcodes into print-ready Uline S-15186 label sheets.
+     Drop your file anywhere on this page or click below to browse.</p>
 </div>
 """, unsafe_allow_html=True)
 
-# ── Spec display ──────────────────────────────────────────────────────────────
-st.markdown("""
-<div class="spec-box">
-  <div class="spec-label">S-15186 physical specifications (fixed)</div>
-  <div class="spec-row">
-    <div class="spec-item"><div class="spec-val">4" × 2"</div>
-      <div class="spec-key">Label size</div></div>
-    <div class="spec-item"><div class="spec-val">10</div>
-      <div class="spec-key">Labels / sheet</div></div>
-    <div class="spec-item"><div class="spec-val">2 × 5</div>
-      <div class="spec-key">Columns × Rows</div></div>
-    <div class="spec-item"><div class="spec-val">8.5" × 11"</div>
-      <div class="spec-key">Sheet (Letter)</div></div>
-    <div class="spec-item"><div class="spec-val">½"</div>
-      <div class="spec-key">Top margin</div></div>
-    <div class="spec-item"><div class="spec-val">⅛"</div>
-      <div class="spec-key">H gap between cols</div></div>
-    <div class="spec-item"><div class="spec-val">0"</div>
-      <div class="spec-key">V gap between rows</div></div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
-
-# ── Sidebar — DPI & padding only (layout is fixed to spec) ───────────────────
-with st.sidebar:
-    st.markdown("### Output settings")
-    st.info("📐 **Sheet layout is fixed** to the exact Uline S-15186 / Avery 6527 spec.\n\n"
-            "Only image quality and content padding are adjustable.")
-    dpi = st.slider("Render DPI", 100, 300, 200, 25,
-                    help="Higher = sharper barcodes, larger file size")
-    content_pad_in = st.slider("Inner padding (pt)", 4, 30, int(CONTENT_PAD), 1,
-                                help="Whitespace between label border and barcode content")
-    CONTENT_PAD = float(content_pad_in)
-
-    st.markdown("---")
-    st.markdown("#### Sheet layout (read-only)")
-    st.markdown(f"""
-| Dimension | Value |
-|-----------|-------|
-| Label W | 4.000" (288 pt) |
-| Label H | 2.000" (144 pt) |
-| Top margin | 0.500" (36 pt) |
-| Left margin | 0.187" (13.5 pt) |
-| H gutter | 0.125" (9 pt) |
-| V gutter | 0.000" |
-| Cols × Rows | 2 × 5 |
-""")
-
-# ── Step 1 — Upload ───────────────────────────────────────────────────────────
-st.markdown("""
-<div class="step-card">
-  <div class="step-title"><span class="step-badge">1</span>Upload your barcode PDF</div>
-</div>
-""", unsafe_allow_html=True)
-
+# ── Upload ────────────────────────────────────────────────────────────────────
 uploaded = st.file_uploader(
-    "Each page = one unique barcode",
+    "Drop a PDF here or click to browse",
     type=["pdf"], label_visibility="collapsed"
 )
 
 if uploaded:
     pdf_bytes = uploaded.read()
-    with st.spinner("Rendering & cropping barcodes…"):
-        st.session_state.barcodes     = render_barcodes(pdf_bytes, dpi)
-        st.session_state.copy_counts  = {i: 10 for i in range(len(st.session_state.barcodes))}
+    with st.spinner("Rendering barcodes…"):
+        st.session_state.barcodes    = render_barcodes(pdf_bytes, dpi)
+        st.session_state.copy_counts = {i: 10 for i in range(len(st.session_state.barcodes))}
         st.session_state.generated_pdfs = []
         st.session_state.zip_bytes      = None
-    st.success(f"✅ {len(st.session_state.barcodes)} unique barcodes detected.")
+    st.success(f"{len(st.session_state.barcodes)} barcodes detected.")
 
-# ── Step 2 — Copy counts ──────────────────────────────────────────────────────
+# ── Barcode list ──────────────────────────────────────────────────────────────
 if st.session_state.barcodes:
     total = len(st.session_state.barcodes)
 
-    st.markdown(f"""
-    <div class="step-card">
-      <div class="step-title">
-        <span class="step-badge">2</span>
-        Set copy counts &nbsp;
-        <span style="color:#737373;font-weight:400;font-size:0.88rem">
-          ({total} barcode{"s" if total > 1 else ""} · 10 labels per sheet)
-        </span>
-      </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown('<div class="section-label">Copies per barcode</div>', unsafe_allow_html=True)
 
     for i, img in enumerate(st.session_state.barcodes):
-        b64   = pil_to_b64(img, max_h=72)
+        b64   = pil_to_b64(img, max_h=56)
         n_def = st.session_state.copy_counts.get(i, 10)
 
-        c_img, c_lbl, c_num, c_hint = st.columns([1.2, 2.5, 1.8, 1.8])
+        c_img, c_lbl, c_num, c_chip = st.columns([0.7, 2.2, 1.1, 1.3])
         with c_img:
             st.image(f"data:image/png;base64,{b64}", use_container_width=True)
         with c_lbl:
             st.markdown(
-                f"<div style='padding-top:10px'>"
-                f"<b style='color:#e8e8e8;font-size:0.95rem;font-family:Manrope,sans-serif'>Barcode {i+1}</b>"
-                f"<br/><span style='color:#737373;font-size:0.78rem'>Page {i+1} of source PDF</span>"
-                f"</div>",
+                f"<div style='padding-top:6px;font-size:0.86rem;color:#737373'>"
+                f"Barcode {i + 1}</div>",
                 unsafe_allow_html=True
             )
         with c_num:
             n = st.number_input(
-                f"copies_{i}", min_value=1, max_value=100_000,
+                f"c{i}", min_value=1, max_value=100_000,
                 value=n_def, step=1,
                 label_visibility="collapsed", key=f"inp_{i}"
             )
             st.session_state.copy_counts[i] = n
-        with c_hint:
+        with c_chip:
             sheets = math.ceil(n / CELLS_PP)
             st.markdown(
-                f"<div style='padding-top:10px'>"
-                f"<span class='pill'>→ {n} labels · {sheets} sheet{'s' if sheets!=1 else ''}</span>"
-                f"</div>",
+                f"<div style='padding-top:6px'>"
+                f"<span class='sheet-chip'>"
+                f"{sheets} sheet{'s' if sheets != 1 else ''}"
+                f"</span></div>",
                 unsafe_allow_html=True
             )
 
-    # Totals
+        st.markdown("<hr class='row-divider'>", unsafe_allow_html=True)
+
+    # ── Totals + Generate ─────────────────────────────────────────────────────
     total_copies = sum(st.session_state.copy_counts[i] for i in range(total))
-    total_sheets  = sum(math.ceil(st.session_state.copy_counts[i] / CELLS_PP) for i in range(total))
-    st.markdown(
-        f"<div style='color:#737373;font-size:0.85rem;margin:6px 0 20px'>"
-        f"Total: <b style='color:#ffedd5'>{total_copies:,} labels</b> across "
-        f"<b style='color:#ffedd5'>{total_sheets} sheet{'s' if total_sheets!=1 else ''}</b> "
-        f"({total} PDF file{'s' if total>1 else ''})"
-        f"</div>",
-        unsafe_allow_html=True
-    )
+    total_sheets = sum(math.ceil(st.session_state.copy_counts[i] / CELLS_PP) for i in range(total))
 
-    # ── Step 3 — Generate ─────────────────────────────────────────────────────
-    st.markdown("""
-    <div class="step-card">
-      <div class="step-title"><span class="step-badge">3</span>Generate & Download</div>
-    </div>
-    """, unsafe_allow_html=True)
+    col_txt, col_btn = st.columns([3, 1])
+    with col_txt:
+        st.markdown(
+            f"<div class='totals-bar'>"
+            f"<span class='totals-text'>"
+            f"<b>{total_copies:,}</b> labels across <b>{total_sheets}</b> "
+            f"sheet{'s' if total_sheets != 1 else ''}"
+            f"</span></div>",
+            unsafe_allow_html=True
+        )
+    with col_btn:
+        st.markdown("<div style='padding-top:14px'>", unsafe_allow_html=True)
+        generate = st.button("Generate ↗")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-    if st.button("⚡ Generate PDFs", use_container_width=False):
-        progress = st.progress(0, text="Starting…")
-        pdfs     = []
-
+    if generate:
+        progress = st.progress(0, text="Building…")
+        pdfs = []
         for i, img in enumerate(st.session_state.barcodes):
             copies = st.session_state.copy_counts[i]
-            fname  = f"S15186_barcode_{i+1:03d}_{copies}copies.pdf"
-            progress.progress(i / total, text=f"Building {fname}…")
-            data   = build_pdf(img, copies, dpi)
+            fname  = f"barcode_{i + 1:03d}_{copies}copies.pdf"
+            progress.progress(i / total, text=f"Barcode {i + 1} of {total}…")
+            data = build_pdf(img, copies, dpi)
             pdfs.append((fname, data))
-
-        progress.progress(1.0, text="Zipping…")
+        progress.progress(1.0, text="Done.")
         st.session_state.generated_pdfs = pdfs
         st.session_state.zip_bytes      = make_zip(pdfs)
         progress.empty()
-        st.success(f"✅ {total} PDF(s) ready — {total_sheets} sheet(s) total.")
 
     # ── Download ──────────────────────────────────────────────────────────────
     if st.session_state.zip_bytes:
-        st.markdown("---")
+        st.markdown('<div class="section-label">Download</div>', unsafe_allow_html=True)
+
         col_dl, col_info = st.columns([2, 3])
         with col_dl:
             st.download_button(
-                label="⬇️  Download All PDFs (zip)",
+                label="Download all PDFs",
                 data=st.session_state.zip_bytes,
                 file_name="S15186_barcode_grids.zip",
                 mime="application/zip",
@@ -577,16 +580,14 @@ if st.session_state.barcodes:
         with col_info:
             size_kb = len(st.session_state.zip_bytes) / 1024
             st.markdown(
-                f"<div style='padding-top:12px;color:#737373;font-size:0.85rem'>"
-                f"<b style='color:#e8e8e8'>{len(st.session_state.generated_pdfs)} PDFs</b>"
-                f" · {size_kb:.0f} KB · {total_sheets} total sheet(s) · "
-                f"Print on <b style='color:#ffedd5'>Uline S-15186</b> label stock"
+                f"<div style='padding-top:10px;color:#525252;font-size:0.82rem'>"
+                f"{len(st.session_state.generated_pdfs)} PDFs · "
+                f"{size_kb:.0f} KB · print on Uline S-15186"
                 f"</div>",
                 unsafe_allow_html=True
             )
 
-        # Per-file downloads
-        with st.expander("📄 Download individual PDFs"):
+        with st.expander("Individual PDFs"):
             for fname, data in st.session_state.generated_pdfs:
                 sheets_f = math.ceil(
                     [st.session_state.copy_counts[i]
@@ -595,13 +596,12 @@ if st.session_state.barcodes:
                 )
                 c1, c2, c3 = st.columns([3, 1, 1])
                 with c1: st.caption(fname)
-                with c2: st.caption(f"{sheets_f} sheet(s)")
+                with c2: st.caption(f"{sheets_f} sheet{'s' if sheets_f != 1 else ''}")
                 with c3:
-                    st.download_button("⬇️", data=data, file_name=fname,
+                    st.download_button("↓", data=data, file_name=fname,
                                        mime="application/pdf", key=f"dl_{fname}")
 
-        # Preview
-        with st.expander("🔍 Preview first sheet of each output"):
+        with st.expander("Preview sheets"):
             prev_cols = st.columns(min(total, 3))
             for i, (fname, data) in enumerate(st.session_state.generated_pdfs):
                 doc = fitz.open(stream=data, filetype="pdf")
@@ -612,10 +612,11 @@ if st.session_state.barcodes:
                     st.image(pv, caption=fname, use_container_width=True)
 
 else:
-    st.markdown(
-        "<div style='text-align:center;color:#525252;padding:60px 0;font-size:0.95rem;"
-        "font-family:Manrope,sans-serif'>"
-        "Upload a PDF above to get started."
-        "</div>",
-        unsafe_allow_html=True
-    )
+    if not uploaded:
+        st.markdown(
+            "<div style='text-align:center;color:#2a2a2a;padding:72px 0;"
+            "font-size:0.86rem;font-family:Manrope,sans-serif'>"
+            "or drop a PDF anywhere on this page"
+            "</div>",
+            unsafe_allow_html=True
+        )
